@@ -26,6 +26,7 @@ mod php;
 mod python;
 mod ruby;
 mod rust;
+mod scala;
 mod svelte;
 mod tailwind;
 mod typescript;
@@ -147,6 +148,11 @@ pub fn init(
         "rust",
         tree_sitter_rust::language(),
         vec![Arc::new(rust::RustLspAdapter)],
+    );
+    language(
+        "scala",
+        tree_sitter_scala::language(),
+        vec![Arc::new(scala::MetalsLspAdapter)],
     );
     language("toml", tree_sitter_toml::language(), vec![]);
     match &DenoSettings::get(None, cx).enable {
