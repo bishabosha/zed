@@ -108,6 +108,7 @@ schemars.workspace = true
 simplelog = "0.9"
 smallvec.workspace = true
 smol.workspace = true
+async-process = "2.0.1"
 tempfile.workspace = true
 thiserror.workspace = true
 tiny_http = "0.8"

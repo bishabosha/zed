@@ -14,6 +14,7 @@ pub struct GithubRelease {
     pub name: String,
     #[serde(rename = "prerelease")]
     pub pre_release: bool,
+    pub tag_name: String,
     pub assets: Vec<GithubReleaseAsset>,
     pub tarball_url: String,
     pub zipball_url: String,
