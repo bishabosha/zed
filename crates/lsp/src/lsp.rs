@@ -574,13 +574,19 @@ impl LanguageServer {
             locale: None,
         };
 
+        log::error!("{} LSP before initialize request!", self.name);
+
         let response = self.request::<request::Initialize>(params).await?;
         if let Some(info) = response.server_info {
             self.name = info.name;
         }
         self.capabilities = response.capabilities;
 
+        log::error!("{} LSP initialized (PRE)!", self.name);
+
         self.notify::<notification::Initialized>(InitializedParams {})?;
+
+        log::error!("{} LSP initialized (SENT)!", self.name);
         Ok(Arc::new(self))
     }
 

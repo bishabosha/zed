@@ -9,6 +9,7 @@ use util::async_maybe;
 use util::github::latest_github_release;
 use util::ResultExt;
 use async_process::Command;
+use serde_json::{json, Value};
 
 pub struct MetalsLspAdapter;
 
@@ -65,6 +66,9 @@ impl LspAdapter for MetalsLspAdapter {
             "--java-opt", "-XX:+UseStringDeduplication",
             "--java-opt", "-Xss4m",
             "--java-opt", "-Xms100m",
+            "--java-opt", "-Dmetals.verbose=on",
+            "--java-opt", "-Dmetals.http=on",
+            "--java-opt", "-Dmetals.loglevel=debug",
             str.as_str(),
             "-o", out.as_str(), "-f"
         );
@@ -110,6 +114,12 @@ impl LspAdapter for MetalsLspAdapter {
                 binary.arguments = vec!["--version".into()];
                 binary
             })
+    }
+
+    fn initialization_options(&self) -> Option<Value> {
+        Some(json!({
+            "isHttpEnabled": true
+        }))
     }
 }
 
