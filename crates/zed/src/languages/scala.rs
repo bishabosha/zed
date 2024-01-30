@@ -4,14 +4,25 @@ use futures::StreamExt;
 use language::{LanguageServerName, LspAdapter, LspAdapterDelegate};
 use lsp::LanguageServerBinary;
 use smol::fs;
-use std::{any::Any, path::PathBuf};
+use gpui::AppContext;
+use std::{any::Any, path::{Path, PathBuf}, sync::OnceLock};
 use util::async_maybe;
 use util::github::latest_github_release;
 use util::ResultExt;
 use async_process::Command;
 use serde_json::{json, Value};
 
-pub struct MetalsLspAdapter;
+pub struct MetalsLspAdapter {
+    server_version: OnceLock<Value>,
+}
+
+impl MetalsLspAdapter {
+    pub fn new() -> Self {
+        Self {
+            server_version: Default::default(),
+        }
+    }
+}
 
 #[async_trait]
 impl LspAdapter for MetalsLspAdapter {
@@ -32,6 +43,10 @@ impl LspAdapter for MetalsLspAdapter {
                 .await?;
 
         let version = release.tag_name.trim_start_matches("v").to_string();
+
+        self.server_version
+            .set(json!(version))
+            .map_err(|_| anyhow!("failed to set server version"))?;
 
         // let asset_name = "eclipse.jdt.ls.tar.gz";
         // let asset = release
@@ -120,6 +135,15 @@ impl LspAdapter for MetalsLspAdapter {
         Some(json!({
             "isHttpEnabled": true
         }))
+    }
+
+    fn workspace_configuration(&self, _: &Path, _: &mut AppContext) -> Value {
+        let server_version = self.server_version.get().map(|f| f.clone()).unwrap_or(serde_json::json!(""));
+        serde_json::json!({
+            "metals": {
+                "serverVersion": server_version,
+            }
+        })
     }
 }
 

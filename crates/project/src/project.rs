@@ -3038,11 +3038,14 @@ impl Project {
                 let adapter = adapter.clone();
                 let worktree_path = worktree_path.to_path_buf();
                 move |params, cx| {
+                    log::error!("(pre-pre) workspace config: {:?}", params);
                     let adapter = adapter.clone();
                     let worktree_path = worktree_path.clone();
                     async move {
+                        log::error!("(pre) workspace config: {:?}", params);
                         let workspace_config =
                             cx.update(|cx| adapter.workspace_configuration(&worktree_path, cx))?;
+                        log::error!("workspace config: {:?}", workspace_config);
                         Ok(params
                             .items
                             .into_iter()

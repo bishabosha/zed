@@ -152,7 +152,7 @@ pub fn init(
     language(
         "scala",
         tree_sitter_scala::language(),
-        vec![Arc::new(scala::MetalsLspAdapter)],
+        vec![Arc::new(scala::MetalsLspAdapter::new())],
     );
     language("toml", tree_sitter_toml::language(), vec![]);
     match &DenoSettings::get(None, cx).enable {

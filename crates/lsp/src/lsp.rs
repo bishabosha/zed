@@ -17,7 +17,7 @@ use smol::{
 };
 use std::{
     ffi::OsString,
-    fmt,
+    fmt::{self, Debug},
     future::Future,
     io::Write,
     path::PathBuf,
@@ -633,6 +633,7 @@ impl LanguageServer {
     where
         T: notification::Notification,
         F: 'static + Send + FnMut(T::Params, AsyncAppContext),
+        T::Params: Debug,
     {
         self.on_custom_notification(T::METHOD, f)
     }
@@ -644,7 +645,7 @@ impl LanguageServer {
     pub fn on_request<T, F, Fut>(&self, f: F) -> Subscription
     where
         T: request::Request,
-        T::Params: 'static + Send,
+        T::Params: 'static + Send + Debug,
         F: 'static + FnMut(T::Params, AsyncAppContext) -> Fut + Send,
         Fut: 'static + Future<Output = Result<T::Result>>,
     {
@@ -684,12 +685,14 @@ impl LanguageServer {
     fn on_custom_notification<Params, F>(&self, method: &'static str, mut f: F) -> Subscription
     where
         F: 'static + FnMut(Params, AsyncAppContext) + Send,
-        Params: DeserializeOwned,
+        Params: DeserializeOwned + Debug,
     {
         let prev_handler = self.notification_handlers.lock().insert(
             method,
             Box::new(move |_, params, cx| {
+                log::error!("LSP notification {} received", method);
                 if let Some(params) = serde_json::from_str(params).log_err() {
+                    log::error!("LSP notification {} received with params {:?}", method, params);
                     f(params, cx);
                 }
             }),
@@ -709,16 +712,19 @@ impl LanguageServer {
     where
         F: 'static + FnMut(Params, AsyncAppContext) -> Fut + Send,
         Fut: 'static + Future<Output = Result<Res>>,
-        Params: DeserializeOwned + Send + 'static,
+        Params: DeserializeOwned + Send + 'static + Debug,
         Res: Serialize,
     {
         let outbound_tx = self.outbound_tx.clone();
         let prev_handler = self.notification_handlers.lock().insert(
             method,
             Box::new(move |id, params, cx| {
+                log::error!("LSP request {} received with id {:?}", method, id);
                 if let Some(id) = id {
+                    log::error!("LSP request {},{} received with paramsStr {:?}", method, id, params);
                     match serde_json::from_str(params) {
                         Ok(params) => {
+                            log::error!("LSP request {},{} received with params {:?}", method, id, params);
                             let response = f(params, cx.clone());
                             cx.foreground_executor()
                                 .spawn({
@@ -950,7 +956,7 @@ impl Subscription {
 
 impl fmt::Display for LanguageServerId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        std::fmt::Display::fmt(&self.0, f)
     }
 }
 
@@ -1122,7 +1128,7 @@ impl FakeLanguageServer {
     ) -> futures::channel::mpsc::UnboundedReceiver<()>
     where
         T: 'static + request::Request,
-        T::Params: 'static + Send,
+        T::Params: 'static + Send + Debug,
         F: 'static + Send + FnMut(T::Params, gpui::AsyncAppContext) -> Fut,
         Fut: 'static + Send + Future<Output = Result<T::Result>>,
     {
@@ -1151,7 +1157,7 @@ impl FakeLanguageServer {
     ) -> futures::channel::mpsc::UnboundedReceiver<()>
     where
         T: 'static + notification::Notification,
-        T::Params: 'static + Send,
+        T::Params: 'static + Send + Debug,
         F: 'static + Send + FnMut(T::Params, gpui::AsyncAppContext),
     {
         let (handled_tx, handled_rx) = futures::channel::mpsc::unbounded();
